@@ -74,7 +74,7 @@ def download_project_images(
     project_id,
     output_folder: Optional[str],
 ) -> List[DownloadedImages]:
-    kili_print("Downloading project images...")
+    kili_print("Downloading images to folder {}".format(output_folder))
     downloaded_images = []
     for asset in tqdm(assets):
         image = download_image(api_key, asset["content"], project_id)
@@ -83,15 +83,14 @@ def download_project_images(
         filename = ""
         if output_folder:
             filename = os.path.join(output_folder, asset["id"] + "." + format.lower())
-
+            os.makedirs(output_folder, exist_ok=True)
             with open(filename, "w") as fp:
-                print(filename)
                 image.save(fp, format)  # type: ignore
 
         downloaded_images.append(
             DownloadedImages(
                 id=asset["id"],
-                externalId=asset["externalId"],
+                externalId=asset["id"],  # ??
                 filename=filename or "",
                 image=image,
             )
