@@ -1,6 +1,5 @@
 from typing_extensions import Literal
 
-LabelingStatusT = Literal["LABELED", "UNLABELED"]
-StatusIntT = Literal["TODO", "ONGOING", "LABELED", "REVIEWED", "DEFAULT"]
-LabelTypeT = Literal["DEFAULT", "REVIEW"]
+AssetTypeT = Literal["TODO", "ONGOING", "LABELED", "TO_REVIEW", "REVIEWED"]
+LabelTypeT = Literal["PREDICTION", "DEFAULT", "AUTOSAVE", "REVIEW", "INFERENCE"]
 CommandT = Literal["train", "predict", "label_errors", "prioritize"]

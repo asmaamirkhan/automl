@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from kiliautoml.utils.constants import HOME, InputTypeT
 from kiliautoml.utils.memoization import kili_project_memoizer
-from kiliautoml.utils.type import LabelingStatusT, LabelTypeT, StatusIntT
+from kiliautoml.utils.type import AssetStatusT
 
 
 def set_all_seeds(seed):
@@ -83,8 +83,7 @@ def get_asset_memoized(
     project_id,
     first,
     skip,
-    status_in: Optional[List[StatusIntT]] = None,
-    label_type_in: Optional[List[LabelTypeT]] = None,
+    status_in: Optional[List[AssetStatusT]] = None,
 ) -> List[Dict]:
     return kili.assets(
         project_id=project_id,
@@ -99,59 +98,31 @@ def get_asset_memoized(
             "labels.labelType",
         ],
         status_in=status_in,
-        label_type_in=label_type_in,
         as_generator=False,
     )
-
-
-def asset_is_kept(
-    asset, labeling_statuses: List[LabelingStatusT] = ["LABELED", "UNLABELED"]
-) -> bool:
-    labeled = len(asset["labels"]) > 0
-    unlabeled = len(asset["labels"]) == 0
-    return ("LABELED" in labeling_statuses and labeled) or (
-        "UNLABELED" in labeling_statuses and unlabeled
-    )
-
-
-def compute_status_in(labeling_statuses: List[LabelingStatusT]) -> List[StatusIntT]:
-    labeled: List[StatusIntT] = ["LABELED", "REVIEWED"]
-    unlabeled: List[StatusIntT] = ["TODO", "ONGOING"]
-    status_in = []
-    if "LABELED" in labeling_statuses:
-        status_in += labeled
-    if "UNLABELED" in labeling_statuses:
-        status_in += unlabeled
-    return status_in
 
 
 def get_assets(
     kili,
     project_id: str,
-    label_type_in: List[LabelTypeT] = ["DEFAULT", "REVIEW"],
+    asset_status_in: Optional[List[AssetStatusT]] = None,
     max_assets: Optional[int] = None,
-    labeling_statuses: List[LabelingStatusT] = ["LABELED", "UNLABELED"],
 ) -> List[Dict]:
-    kili_print("Downloading asset metadata from Kili")
-    if not labeling_statuses:
-        raise ValueError("labeling_statuses must be a non-empty list.")
+    kili_print(f"Downloading assets with status in {asset_status_in} from Kili")
 
-    total = kili.count_assets(project_id=project_id)
+    total = kili.count_assets(project_id=project_id, status_in=asset_status_in)
     total = total if max_assets is None else min(total, max_assets)
 
-    status_in = compute_status_in(labeling_statuses)
     assets = get_asset_memoized(
         kili=kili,
         project_id=project_id,
         first=total,
         skip=0,
-        status_in=status_in,
-        label_type_in=label_type_in,
+        status_in=asset_status_in,
     )
 
     if len(assets) == 0:
-        if len(labeling_statuses) == 1:
-            kili_print(f"No {labeling_statuses[0]} assets found in project {project_id}.")
+        kili_print(f"No {asset_status_in} assets found in project {project_id}.")
         raise Exception("There is no asset matching the query. ")
     return assets
 
@@ -170,14 +141,6 @@ def get_project(kili, project_id: str) -> Tuple[InputTypeT, Dict, str]:
 
 def kili_print(*args, **kwargs) -> None:
     print(colored("kili:", "yellow", attrs=["bold"]), *args, **kwargs)
-
-
-def parse_label_types(label_types: Optional[str]) -> List[LabelTypeT]:
-    if label_types:
-        res: List[LabelTypeT] = label_types.split(",")  # type: ignore
-        return res
-    else:
-        return ["DEFAULT", "REVIEW"]
 
 
 def set_default(x, x_default, x_name: str, x_range: List):

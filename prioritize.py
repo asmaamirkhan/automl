@@ -16,13 +16,9 @@ from tqdm import tqdm
 
 from kiliautoml.utils.constants import InputType, MLTaskT, ModelFrameworkT, ToolT
 from kiliautoml.utils.download_assets import download_project_images
-from kiliautoml.utils.helpers import (
-    get_assets,
-    get_project,
-    kili_print,
-    parse_label_types,
-)
+from kiliautoml.utils.helpers import get_assets, get_project, kili_print
 from kiliautoml.utils.memoization import clear_automl_cache
+from kiliautoml.utils.type import AssetStatusT
 from predict import predict_one_job
 
 # Priorities
@@ -309,11 +305,11 @@ def embedding_text(
 @click.option("--api-key", default=os.environ.get("KILI_API_KEY"), help="Kili API Key")
 @click.option("--project-id", required=True, help="Kili project ID")
 @click.option(
-    "--label-types",
-    default=None,
+    "--asset-status-in",
+    default=["TODO", "ONGOING"],
     help=(
-        "Comma separated list Kili specific label types to select "
-        "(among DEFAULT, REVIEW, PREDICTION)"
+        "Comma separated list of Kili asset status to select(among "
+        "'TODO', 'ONGOING', 'LABELED', 'TO_REVIEW', 'REVIEWED')"
     ),
 )
 @click.option(
@@ -371,7 +367,7 @@ def main(
     api_endpoint: str,
     api_key: str,
     project_id: str,
-    label_types: str,
+    asset_status_in: List[AssetStatusT],
     max_assets: Optional[int],
     diversity_sampling: float,
     uncertainty_sampling: float,
@@ -418,9 +414,8 @@ def main(
     unlabeled_assets = get_assets(
         kili,
         project_id,
-        parse_label_types(label_types),
+        asset_status_in,
         max_assets,
-        labeling_statuses=["UNLABELED"],
     )
 
     # TODO: useless if uncertainty_sampling == 0
